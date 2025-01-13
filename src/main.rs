@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::process::exit;
 
 fn main() {
     // Uncomment this block to pass the first stage
@@ -13,10 +14,12 @@ fn main() {
         // Wait for user input
         stdin.read_line(&mut input).unwrap();
         let input = input.trim();
-        match input {
-            "exit 0" => break,
-            _ => println!("{}: command not found", input),
-            
+        let mut command_parts = input.split_whitespace();
+
+        match command_parts.next().unwrap() {
+            "exit" => exit(command_parts.next().unwrap().parse().unwrap()),
+            "echo" => println!("{}", command_parts.collect::<Vec<&str>>().join(" ")),
+            _ => println!("{}: command not found", input),  
         }
     }
 }
