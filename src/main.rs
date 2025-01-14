@@ -34,10 +34,10 @@ fn main() {
                 } else {
                     exit(0); // Default exit code is 0
                 }
-            },
+            }
             "echo" => {
                 println!("{}", args.join(" "));
-            },
+            }
             "type" => {
                 if let Some(next_command) = args.get(0) {
                     match *next_command {
@@ -61,16 +61,14 @@ fn main() {
                             if !found {
                                 println!("{}: not found", next_command);
                             }
-                        },
+                        }
                     }
                 } else {
                     println!("type: missing argument");
                 }
-            },
+            }
             _ => {
-                let output = Command::new(command)
-                    .args(args)
-                    .output();
+                let output = Command::new(command).args(args).output();
                 match output {
                     Ok(output) => {
                         if !output.stdout.is_empty() {
@@ -79,10 +77,10 @@ fn main() {
                         if !output.stderr.is_empty() {
                             eprintln!("{}", String::from_utf8_lossy(&output.stderr));
                         }
-                    },
+                    }
                     Err(err) => println!("{}: command not found ({})", command, err),
                 }
-            },
+            }
         }
     }
 }
