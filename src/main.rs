@@ -73,7 +73,7 @@ fn main() {
                 for path in paths {
                     let full_path = path::Path::new(path).join(command);
                     if full_path.exists() {
-                        println!("Program was passed {} args (including program name)",
+                        println!("Program was passed {} args (including program name).",
                             command_parts.len());
 
                         println!("Arg #0 (program name): {}", command);
