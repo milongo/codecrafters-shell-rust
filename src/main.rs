@@ -43,7 +43,6 @@ fn main() {
                                 let full_path = path::Path::new(path).join(next_command);
                                 if full_path.exists() {
                                     println!("{} is {}", next_command, full_path.display());
-                                    return;
                                 }
                             }
                             println!("{}: not found", next_command)
