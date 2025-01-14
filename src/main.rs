@@ -1,6 +1,7 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::process::exit;
+use std::{env, path};
 
 fn main() {
     // Uncomment this block to pass the first stage
@@ -35,7 +36,18 @@ fn main() {
                         "echo" => println!("echo is a shell builtin"),
                         "exit" => println!("exit is a shell builtin"),
                         "type" => println!("type is a shell builtin"),
-                        _ => println!("{}: not found", next_command),
+                        _ => { 
+                            let path = env::var("PATH").unwrap();
+                            let paths = path.split(":");
+                            for path in paths {
+                                let full_path = path::Path::new(path).join(next_command);
+                                if full_path.exists() {
+                                    println!("{} is {}", next_command, full_path.display());
+                                    return;
+                                }
+                            }
+                            println!("{}: not found", next_command)
+                        },
                     }
                 }
             }
