@@ -4,13 +4,14 @@ use std::process::exit;
 use std::{env, path};
 
 fn main() {
-    // Uncomment this block to pass the first stage
     let stdin = io::stdin();
     let mut input = String::new();
+
     loop {
         input.clear();
         print!("$ ");
         io::stdout().flush().unwrap();
+
         // Wait for user input
         stdin.read_line(&mut input).unwrap();
         let input = input.trim();
@@ -18,28 +19,34 @@ fn main() {
             continue;
         }
 
-        let mut command_parts = input.split_whitespace();
-        let command = command_parts.next().unwrap();
+        // Collect command parts into a Vec
+        let command_parts: Vec<&str> = input.split_whitespace().collect();
+        let command = command_parts[0];
+        let args = &command_parts[1..];
+
         match command {
             "exit" => {
-                if let Some(exit_code) = command_parts.next() {
+                if let Some(exit_code) = args.get(0) {
                     match exit_code.parse::<i32>() {
                         Ok(code) => exit(code),
                         Err(_) => println!("exit: invalid exit code"),
                     }
+                } else {
+                    exit(0); // Default exit code is 0
                 }
             },
-            "echo" => println!("{}", command_parts.collect::<Vec<&str>>().join(" ")),
+            "echo" => println!("{}", args.join(" ")),
             "type" => {
-                if let Some(next_command) = command_parts.next() {
-                    match next_command {
+                if let Some(next_command) = args.get(0) {
+                    match *next_command {
                         "echo" => println!("echo is a shell builtin"),
                         "exit" => println!("exit is a shell builtin"),
                         "type" => println!("type is a shell builtin"),
-                        _ => { 
-                            let path = env::var("PATH").unwrap();
+                        _ => {
+                            let path = env::var("PATH").unwrap_or_else(|_| String::new());
                             let paths = path.split(":");
                             let mut found = false;
+
                             for path in paths {
                                 let full_path = path::Path::new(path).join(next_command);
                                 if full_path.exists() {
@@ -48,14 +55,40 @@ fn main() {
                                     break;
                                 }
                             }
+
                             if !found {
-                                println!("{}: not found", next_command)
+                                println!("{}: not found", next_command);
                             }
                         },
                     }
+                } else {
+                    println!("type: missing argument");
                 }
-            }
-            _ => println!("{}: command not found", command),
+            },
+            _ => {
+                let path = env::var("PATH").unwrap_or_else(|_| String::new());
+                let paths = path.split(":");
+                let mut found = false;
+
+                for path in paths {
+                    let full_path = path::Path::new(path).join(command);
+                    if full_path.exists() {
+                        println!("Program was passed {} args (including program name)",
+                            command_parts.len());
+
+                        println!("Arg #0 (program name): {}", command);
+                        for (i, arg) in args.iter().enumerate() {
+                            println!("Arg #{}: {}", i + 1, arg);
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+
+                if !found {
+                    println!("{}: command not found", command);
+                }
+            },
         }
     }
 }
