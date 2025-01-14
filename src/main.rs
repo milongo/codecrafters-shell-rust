@@ -39,13 +39,18 @@ fn main() {
                         _ => { 
                             let path = env::var("PATH").unwrap();
                             let paths = path.split(":");
+                            let mut found = false;
                             for path in paths {
                                 let full_path = path::Path::new(path).join(next_command);
                                 if full_path.exists() {
                                     println!("{} is {}", next_command, full_path.display());
+                                    found = true;
+                                    break;
                                 }
                             }
-                            println!("{}: not found", next_command)
+                            if !found {
+                                println!("{}: not found", next_command)
+                            }
                         },
                     }
                 }
