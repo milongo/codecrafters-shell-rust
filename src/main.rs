@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process::{exit, Command};
+use std::process::Command;
 use std::{env, path};
 
 fn main() {
@@ -28,11 +28,11 @@ fn main() {
             "exit" => {
                 if let Some(exit_code) = args.get(0) {
                     match exit_code.parse::<i32>() {
-                        Ok(code) => exit(code),
+                        Ok(code) => std::process::exit(code),
                         Err(_) => println!("exit: invalid exit code"),
                     }
                 } else {
-                    exit(0); // Default exit code is 0
+                    std::process::exit(0); // Default exit code is 0
                 }
             }
             "echo" => {
@@ -69,13 +69,14 @@ fn main() {
             }
             _ => {
                 let output = Command::new(command).args(args).output();
+
                 match output {
                     Ok(output) => {
                         if !output.stdout.is_empty() {
-                            println!("{}", String::from_utf8_lossy(&output.stdout));
+                            print!("{}", String::from_utf8_lossy(&output.stdout));
                         }
                         if !output.stderr.is_empty() {
-                            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+                            eprint!("{}", String::from_utf8_lossy(&output.stderr));
                         }
                     }
                     Err(err) => println!("{}: command not found ({})", command, err),
