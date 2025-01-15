@@ -1,3 +1,3 @@
 title: My Shell Project Blog
-description: Follow my journey of building a POSIX-compliant shell.
-theme: minima
+description: Building a POSIX-compliant shell in Rust
+theme: cayman
