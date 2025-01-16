@@ -1,3 +1,4 @@
 # CodeCrafters challenge: build your own shell
 
-A shell is a command-line interface that executes commands and manages processes. In this challenge, I'll build a POSIX compliant shell that's capable of interpreting shell commands, running external programs and builtin commands like cd, pwd, echo and more.
+This is a blog about the CodeCrafters build your own shell challenge. I will be tackling this challenge in Rust: most (if not all) of my programming experience has been in Python, and I'm eager to learn a second language. After doing some research, I chose Rust as the language for this challenge and subsequent challenges as well.
+
