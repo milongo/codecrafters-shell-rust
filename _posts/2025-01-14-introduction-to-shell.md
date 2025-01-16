@@ -13,7 +13,7 @@ From the [Open Group Base specification](https://pubs.opengroup.org/onlinepubs/9
 
 `"The shell is a command language interpreter."`.
 
-It's not entirely clear to me what this means! I've been programming for about 8 years, interating with terminals in Unix-like systems, using commands like `cd`, `pwd`, `ls` and more on a daily basis, but I rarely questioned how this worked internally: I just took it for granted that I could accomplish certain things (find specific files in filesystems, SSH into remote servers, manage work and personal repositories using `git`, etc.) required by my job by typing commands into a terminal, googling, using Stack Overflow, and more recently using LLMs like ChatGPT. 
+It's not entirely clear to me what this means! I've been programming for about 8 years, interacting with terminals in Unix-like systems, using commands like `cd`, `pwd`, `ls` and more on a daily basis, but I rarely questioned how this worked internally: I just took it for granted that I could accomplish certain things (find specific files in filesystems, SSH into remote servers, manage work and personal repositories using `git`, etc.) required by my job by typing commands into a terminal, googling, using Stack Overflow, and more recently using LLMs like ChatGPT. 
 
 Here's one more attempt at understanding the shell, from ChatGPT (gpt4o):
 
