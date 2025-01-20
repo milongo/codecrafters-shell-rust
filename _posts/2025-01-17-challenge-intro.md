@@ -91,3 +91,46 @@ To prevent this, after `let s2 = s1`, Rust considers `s1` as no longer valid. `s
 In our original code snippet, the `read_line` function is *borrowing* `input` through the mutable reference. It appends to `input` the contents of the line read from standard input.
 If we had not used mutable references, `input`'s ownership would have been transferred into the `read_line` function (assuming `read_line` would look like `fn read_line(mut input: String)`) and dropped after it went out of scope (i.e. once the function is over).
 
+## Unwrap
+
+And finally, we have a funky `unwrap()`. To explain this we need to look at Rust's error handling.
+
+In Rust, errors are classified into recoverable and unrecoverable errors. 
+"Unrecoverable errors are always symptoms of bugs, and so we want to immediately stop the program." [[Error handling]](https://doc.rust-lang.org/book/ch09-00-error-handling.html)
+For recoverable errors, there is an enum type `Result<T,E>`. There is some funky stuff about generic types here, but for now all we need to know is that for functions that return a `Result<T,E>` type,
+the rusty way of handling this type is to use the `match` expression:
+
+```rust
+fn main() {
+    let number_str = "42a"; // Invalid number
+    let parse_result = number_str.parse::<i32>(); // Try to parse the string as an integer
+
+    match parse_result {
+        Ok(number) => {
+            println!("Parsed number successfully: {}", number);
+        }
+        Err(error) => {
+            panic!("Failed to parse number: {}", error);
+        }
+    }
+}
+```
+
+This code snippet ends up printing:
+
+```
+thread 'main' panicked at src/main.rs:10:13:
+Failed to parse number: invalid digit found in string
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+``` 
+
+because the string `"42a"` is not a valid integer. Essentially what this means is that when functions return the `Result<T,E>` type, we need to handle the fact that there is either an `Ok` value or an `Err`. 
+This can sometimes be annoying, so Rust has the `unwrap` function, that will return the `Ok` value of the `Result<T,E>` type if it exists and panic otherwise. Because of this, the use of `unwrap()` is typically discouraged.
+Luckily, there also exists `unwrap_or_else`, `unwrap_or` and `unwrap_or_default`.
+
+# Conclusion
+
+Well, that was a very lengthy blog post for a very simple code snippet... 
+My goal here was to learn Rust at the same time as writing a program that satisfies the CodeCrafters requirements, but I think that if I do such deep-dives into Rust while 
+trying to complete the challenge, I may never end up completing the challenge! I'll try to keep the Rust-related explanations to a minimum from now on, instead focusing more on the challenge itself.
