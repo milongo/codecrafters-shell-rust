@@ -97,7 +97,7 @@ And finally, we have a funky `unwrap()`. To explain this we need to look at Rust
 
 In Rust, errors are classified into recoverable and unrecoverable errors. 
 "Unrecoverable errors are always symptoms of bugs, and so we want to immediately stop the program." [[Error handling]](https://doc.rust-lang.org/book/ch09-00-error-handling.html)
-For recoverable errors, there is an enum type `Result<T,E>`. There is some funky stuff about generic types here, but for now all we need to know is that for functions that return a `Result<T,E>` type,
+For recoverable errors, there is an enum type `Result<T,E>`. There is some strange stuff about generic types here, but for now all we need to know is that for functions that return a `Result<T,E>` type,
 the rusty way of handling this type is to use the `match` expression:
 
 ```rust
@@ -127,10 +127,10 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 because the string `"42a"` is not a valid integer. Essentially what this means is that when functions return the `Result<T,E>` type, we need to handle the fact that there is either an `Ok` value or an `Err`. 
 This can sometimes be annoying, so Rust has the `unwrap` function, that will return the `Ok` value of the `Result<T,E>` type if it exists and panic otherwise. Because of this, the use of `unwrap()` is typically discouraged.
-Luckily, there also exists `unwrap_or_else`, `unwrap_or` and `unwrap_or_default`.
+Luckily, there also exist `unwrap_or_else`, `unwrap_or` and `unwrap_or_default`.
 
 # Conclusion
 
 Well, that was a very lengthy blog post for a very simple code snippet... 
 My goal here was to learn Rust at the same time as writing a program that satisfies the CodeCrafters requirements, but I think that if I do such deep-dives into Rust while 
-trying to complete the challenge, I may never end up completing the challenge! I'll try to keep the Rust-related explanations to a minimum from now on, instead focusing more on the challenge itself.
+trying to complete the challenge, I may never end up completing it! I'll try to keep the Rust-related explanations to a minimum from now on, instead focusing more on the challenge itself.
