@@ -82,7 +82,7 @@ However, this could cause memory safety issues: consider this
 {
     let s1 = String::from("don't panic");
     let s2 = s1;
-}
+} // here s1 and s2 go out of scope
 ```
 
 Once `s1` and `s2` go out of scope, the memory management system would try to free the same underlying memory. This is known as a double free error. Freeing memory twice can lead to memory corruption.
