@@ -80,7 +80,7 @@ fn main() {
                             eprint!("{}", String::from_utf8_lossy(&output.stderr));
                         }
                     }
-                    Err(_err) => println!("{}: command not found", command),
+                    Err(_err) => println!("{}: command not found: {}", command, _err.to_string()),
                 }
             }
         }
