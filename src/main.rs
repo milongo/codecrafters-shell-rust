@@ -44,7 +44,7 @@ fn main() {
                         "echo" => println!("echo is a shell builtin"),
                         "exit" => println!("exit is a shell builtin"),
                         "type" => println!("type is a shell builtin"),
-                        "pwd" => println!("pwd is a shell builtin"),
+                        // "pwd" => println!("pwd is a shell builtin"),
                         _ => {
                             let path = env::var("PATH").unwrap_or_else(|_| String::new());
                             let paths = path.split(":");
