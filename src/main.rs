@@ -3,6 +3,31 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::{env, path};
 
+/// Given a command name, try to find its full path by checking the PATH environment variable.
+/// If the command contains a slash, we assume it’s a path and check it directly.
+fn find_command_path(cmd: &str) -> Option<path::PathBuf> {
+    // If cmd contains a slash, assume it's already a path.
+    if cmd.contains('/') {
+        let p = path::PathBuf::from(cmd);
+        if p.exists() {
+            return Some(p);
+        } else {
+            return None;
+        }
+    }
+
+    // Otherwise, search through the PATH environment variable.
+    if let Ok(path_env) = env::var("PATH") {
+        for p in path_env.split(':') {
+            let full_path = path::Path::new(p).join(cmd);
+            if full_path.exists() {
+                return Some(full_path);
+            }
+        }
+    }
+    None
+}
+
 fn main() {
     let stdin = io::stdin();
     let mut input = String::new();
@@ -19,8 +44,8 @@ fn main() {
             continue;
         }
 
-        // Collect command parts into a Vec
-        let command_parts: Vec<&str> = input.split_whitespace().collect();
+        // Split the input into command parts
+        let command_parts = trimmed_input.split_whitespace().collect::<Vec<&str>>();
         let command = command_parts[0];
         let args = &command_parts[1..];
 
@@ -32,7 +57,7 @@ fn main() {
                         Err(_) => println!("exit: invalid exit code"),
                     }
                 } else {
-                    std::process::exit(0); // Default exit code is 0
+                    std::process::exit(0); // Default exit code is 0.
                 }
             }
             "echo" => {
@@ -46,20 +71,10 @@ fn main() {
                         "type" => println!("type is a shell builtin"),
                         // "pwd" => println!("pwd is a shell builtin"),
                         _ => {
-                            let path = env::var("PATH").unwrap_or_else(|_| String::new());
-                            let paths = path.split(":");
-                            let mut found = false;
-
-                            for path in paths {
-                                let full_path = path::Path::new(path).join(next_command);
-                                if full_path.exists() {
-                                    println!("{} is {}", next_command, full_path.display());
-                                    found = true;
-                                    break;
-                                }
-                            }
-
-                            if !found {
+                            // Here we use the same PATH-search logic.
+                            if let Some(full_path) = find_command_path(next_command) {
+                                println!("{} is {}", next_command, full_path.display());
+                            } else {
                                 println!("{}: not found", next_command);
                             }
                         }
@@ -69,18 +84,31 @@ fn main() {
                 }
             }
             _ => {
-                let output = Command::new(command).args(args).output();
+                // Before executing an external command, search for its full path.
+                let full_command = if command.contains('/') {
+                    path::PathBuf::from(command)
+                } else {
+                    match find_command_path(command) {
+                        Some(p) => p,
+                        None => {
+                            println!("{}: command not found", command);
+                            continue;
+                        }
+                    }
+                };
+                println!("Executing: {:?}", full_command);
+                let output = Command::new(full_command).args(args).output();
 
                 match output {
                     Ok(output) => {
                         if !output.stdout.is_empty() {
-                            print!("{}", String::from_utf8_lossy(&output.stdout));
+                            println!("{}", String::from_utf8_lossy(&output.stdout));
                         }
                         if !output.stderr.is_empty() {
-                            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+                            println!("{}", String::from_utf8_lossy(&output.stderr));
                         }
                     }
-                    Err(_err) => println!("{}: command not found: {}", command, _err.to_string()),
+                    Err(err) => println!("Error executing {}: {}", command, err),
                 }
             }
         }
