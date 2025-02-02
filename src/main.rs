@@ -108,9 +108,14 @@ impl Shell {
                 let output = Command::new(command).args(args).output();
                 match output {
                     Ok(output) => {
-                        println!("{}", String::from_utf8_lossy(&output.stdout));
+                        if !output.stdout.is_empty() {
+                            print!("{}", String::from_utf8_lossy(&output.stdout));
+                        }
+                        if !output.stderr.is_empty() {
+                            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+                        }
                     }
-                    Err(err) => eprintln!("Error executing command: {}", err),
+                    Err(_err) => println!("{}: command not found", command),
                 }
             }
         }
