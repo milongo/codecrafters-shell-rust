@@ -3,7 +3,6 @@ use std::io::{self, Write};
 use std::process::Command;
 use std::{env, path};
 
-/// Enum for built-in commands
 enum BuiltinCommand {
     Pwd,
     Echo,
@@ -42,7 +41,6 @@ impl BuiltinCommand {
     }
 }
 
-/// Find an executable in PATH
 fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
     if cmd.contains("/") {
         let p = path::PathBuf::from(cmd);
@@ -63,7 +61,6 @@ fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-/// Shell struct encapsulating built-ins and execution logic
 struct Shell {
     builtins: HashMap<&'static str, BuiltinCommand>,
 }
