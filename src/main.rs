@@ -1,29 +1,60 @@
-use std::collections::HashSet;
-#[allow(unused_imports)]
+use std::collections::HashMap;
 use std::io::{self, Write};
-use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
-use std::{env, path}; // Required for UNIX `mode` checks
+use std::{env, path};
 
-/// Given a command name, try to find its full path by checking the PATH environment variable.
-/// If the command contains a slash, we assume it’s a path and check it directly.
-/// Given a command name, try to find its full path by checking the PATH environment variable.
-/// If the command contains a slash, we assume it’s a path and check it directly.
-fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
-    // If cmd contains a slash, assume it's already a path.
-    if cmd.contains("/") {
-        let p = std::path::PathBuf::from(cmd);
-        if p.exists() {
-            return Some(p);
-        } else {
-            return None;
+/// Enum for built-in commands
+enum BuiltinCommand {
+    Pwd,
+    Echo,
+    Exit,
+    Type,
+}
+
+impl BuiltinCommand {
+    fn execute(&self, args: &[&str], builtins: &HashMap<&str, BuiltinCommand>) {
+        match self {
+            BuiltinCommand::Pwd => match env::current_dir() {
+                Ok(dir) => println!("{}", dir.display()),
+                Err(err) => eprintln!("pwd: error retrieving current directory: {}", err),
+            },
+            BuiltinCommand::Echo => {
+                println!("{}", args.join(" "));
+            }
+            BuiltinCommand::Exit => {
+                let code = args.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+                std::process::exit(code);
+            }
+            BuiltinCommand::Type => {
+                if let Some(command) = args.get(0) {
+                    if builtins.contains_key(*command) {
+                        println!("{} is a shell builtin", command);
+                    } else if let Some(path) = find_command_path(command) {
+                        println!("{} is {}", command, path.to_string_lossy());
+                    } else {
+                        println!("{}: not found", command);
+                    }
+                } else {
+                    println!("type: missing argument");
+                }
+            }
         }
     }
+}
 
-    // Otherwise, search through the PATH environment variable.
-    if let Ok(path_env) = std::env::var("PATH") {
+/// Find an executable in PATH
+fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
+    if cmd.contains("/") {
+        let p = path::PathBuf::from(cmd);
+        if p.exists() {
+            return Some(p);
+        }
+        return None;
+    }
+
+    if let Ok(path_env) = env::var("PATH") {
         for p in path_env.split(":") {
-            let full_path = std::path::Path::new(p).join(cmd);
+            let full_path = path::Path::new(p).join(cmd);
             if full_path.exists() {
                 return Some(full_path);
             }
@@ -32,51 +63,58 @@ fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let mut input = String::new();
+/// Shell struct encapsulating built-ins and execution logic
+struct Shell {
+    builtins: HashMap<&'static str, BuiltinCommand>,
+}
 
-    let builtins = ["echo", "exit", "type", "pwd"]
-        .iter()
-        .copied()
-        .collect::<HashSet<_>>();
+impl Shell {
+    fn new() -> Self {
+        let mut builtins = HashMap::new();
+        builtins.insert("pwd", BuiltinCommand::Pwd);
+        builtins.insert("echo", BuiltinCommand::Echo);
+        builtins.insert("exit", BuiltinCommand::Exit);
+        builtins.insert("type", BuiltinCommand::Type);
 
-    loop {
-        input.clear();
-        print!("$ ");
-        io::stdout().flush().unwrap();
+        Shell { builtins }
+    }
 
-        // Wait for user input
-        stdin.read_line(&mut input).unwrap();
-        let input = input.trim();
-        if input.is_empty() {
-            continue;
-        }
+    fn run(&self) {
+        let stdin = io::stdin();
+        let mut input = String::new();
 
-        // Split the input into command parts
-        let command_parts = trimmed_input.split_whitespace().collect::<Vec<&str>>();
-        let command = command_parts[0];
-        let args = &command_parts[1..];
+        loop {
+            input.clear();
+            print!("$ ");
+            io::stdout().flush().unwrap();
 
-        match command {
-            "type" => {
-                let next_command = args[0];
-                let command_path = find_command_path(next_command);
-                if builtins.contains(&next_command) {
-                    println!("{} is a shell builtin", next_command);
-                } else if let Some(command_path) = command_path {
-                    println!("{} is {}", next_command, command_path.to_string_lossy());
-                } else {
-                    println!("{}: not found", next_command);
-                }
+            if stdin.read_line(&mut input).is_err() {
+                eprintln!("Error reading input.");
+                continue;
             }
-            _ => {
+
+            let trimmed_input = input.trim();
+            if trimmed_input.is_empty() {
+                continue;
+            }
+
+            let parts: Vec<&str> = trimmed_input.split_whitespace().collect();
+            let command = parts[0];
+            let args = &parts[1..];
+
+            if let Some(builtin) = self.builtins.get(command) {
+                builtin.execute(args, &self.builtins);
+            } else {
                 let output = Command::new(command).args(args).output();
                 if let Err(err) = output {
                     println!("Error executing command: {}", err);
-                    continue;
                 }
             }
         }
     }
+}
+
+fn main() {
+    let shell = Shell::new();
+    shell.run();
 }
