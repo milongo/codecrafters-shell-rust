@@ -106,8 +106,11 @@ impl Shell {
                 builtin.execute(args, &self.builtins);
             } else {
                 let output = Command::new(command).args(args).output();
-                if let Err(err) = output {
-                    println!("Error executing command: {}", err);
+                match output {
+                    Ok(output) => {
+                        println!("{}", String::from_utf8_lossy(&output.stdout));
+                    }
+                    Err(err) => eprintln!("Error executing command: {}", err),
                 }
             }
         }
