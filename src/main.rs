@@ -70,7 +70,7 @@ fn cd(args: &[&str]) {
 
     let path = path::Path::new(&target_dir);
     if let Err(err) = env::set_current_dir(path) {
-        eprintln!("cd: {}: {}", target_dir, err);
+        eprintln!("cd: {}: No such file or directory", target_dir);
     }
 }
 
