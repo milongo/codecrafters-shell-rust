@@ -46,26 +46,31 @@ impl BuiltinCommand {
 }
 
 fn cd(args: &[&str]) {
-    if let Some(mut str_path) = args.get(0) {
-        if str_path == &"~" {
-            let home = env::var("HOME");
-            if let Ok(home) = home {
-                str_path = &&home[..];
-            } else {
-                eprintln!("cd: $HOME not set");
-            }
-            return;
-        }
-        let path = path::Path::new(str_path);
-        
-        if path.exists() {
-            let cd_ed = env::set_current_dir(path);
-            if let Err(cd_ed) = cd_ed {
-                eprintln!("cd: error changing directory: {}", cd_ed);
+    let target_dir = if let Some(path) = args.get(0) {
+        if path == &"~" {
+            match env::var("HOME") {
+                Ok(home) => home,
+                Err(_) => {
+                    eprintln!("cd: $HOME not set");
+                    return;
+                }
             }
         } else {
-            println!("cd: no such file or directory: {}", str_path);
+            path.to_string()
         }
+    } else {
+        match env::var("HOME") {
+            Ok(home) => home, // Default to home if no arguments
+            Err(_) => {
+                eprintln!("cd: $HOME not set");
+                return;
+            }
+        }
+    };
+
+    let path = path::Path::new(&target_dir);
+    if let Err(err) = env::set_current_dir(path) {
+        eprintln!("cd: {}: {}", target_dir, err);
     }
 }
 
