@@ -20,11 +20,11 @@ impl BuiltinCommand {
             },
             BuiltinCommand::Echo => {
                 println!("{}", args.join(" "));
-            },
+            }
             BuiltinCommand::Exit => {
                 let code = args.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
                 std::process::exit(code);
-            },
+            }
             BuiltinCommand::Type => {
                 if let Some(command) = args.get(0) {
                     if builtins.contains_key(*command) {
@@ -37,34 +37,34 @@ impl BuiltinCommand {
                 } else {
                     println!("type: missing argument");
                 }
-            },
-            BuiltinCommand::Cd => {
-                if let Some(str_path) = args.get(0) { 
-                    let path = path::Path::new(str_path);
-                    if path.is_absolute() {
-                        if path.exists() {
-                            let cd_ed = env::set_current_dir(path);
-                            if let Err(cd_ed) = cd_ed {
-                                eprintln!("cd: error changing directory: {}", cd_ed);
-                            }
-                        }
-                        else {
-                            println!("cd: no such file or directory: {}", str_path);
-                        }
-                    }
-                    else if path.is_relative() {
-                        if path.exists() {
-                            let cd_ed = env::set_current_dir(path);
-                            if let Err(cd_ed) = cd_ed {
-                                eprintln!("cd: error changing directory: {}", cd_ed);
-                            }
-                        }
-                        else {
-                            println!("cd: no such file or directory: {}", str_path);
-                        }
-                    }
-                }
             }
+            BuiltinCommand::Cd => {
+                cd(args);
+            }
+        }
+    }
+}
+
+fn cd(args: &[&str]) {
+    if let Some(mut str_path) = args.get(0) {
+        if str_path == &"~" {
+            let home = env::var("HOME");
+            if let Ok(home) = home {
+                str_path = &&home[..];
+            } else {
+                eprintln!("cd: $HOME not set");
+            }
+            return;
+        }
+        let path = path::Path::new(str_path);
+        
+        if path.exists() {
+            let cd_ed = env::set_current_dir(path);
+            if let Err(cd_ed) = cd_ed {
+                eprintln!("cd: error changing directory: {}", cd_ed);
+            }
+        } else {
+            println!("cd: no such file or directory: {}", str_path);
         }
     }
 }
