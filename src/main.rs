@@ -52,6 +52,17 @@ impl BuiltinCommand {
                             println!("cd: no such file or directory: {}", str_path);
                         }
                     }
+                    else if path.is_relative() {
+                        if path.exists() {
+                            let cd_ed = env::set_current_dir(path);
+                            if let Err(cd_ed) = cd_ed {
+                                eprintln!("cd: error changing directory: {}", cd_ed);
+                            }
+                        }
+                        else {
+                            println!("cd: no such file or directory: {}", str_path);
+                        }
+                    }
                 }
             }
         }
