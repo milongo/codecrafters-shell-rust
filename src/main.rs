@@ -129,7 +129,28 @@ impl Shell {
                 continue;
             }
 
-            let parts: Vec<&str> = trimmed_input.split_whitespace().collect();
+            let mut parts: Vec<&str> = Vec::new();
+
+            if let (Some(first_index), Some(second_index)) = (trimmed_input.find("'"), trimmed_input.rfind("'")) {
+                if first_index != second_index {
+                    let first_part = trimmed_input[..first_index].trim();
+                    let preserve = &trimmed_input[first_index + 1..second_index]; // Remove surrounding quotes
+                    let rest = trimmed_input[second_index + 1..].trim();
+
+                    if !first_part.is_empty() {
+                        parts.push(first_part);
+                    }
+                    parts.push(preserve);
+                    if !rest.is_empty() {
+                        parts.push(rest);
+                    }
+                } else {
+                    eprintln!("Error: Mismatched or incomplete quotes");
+                }
+            } else {
+                parts = trimmed_input.split_whitespace().collect();
+            }
+
             let command = parts[0];
             let args = &parts[1..];
 
