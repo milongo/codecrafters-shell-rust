@@ -12,7 +12,7 @@ enum BuiltinCommand {
 }
 
 impl BuiltinCommand {
-    fn execute(&self, args: &[&str], builtins: &HashMap<&str, BuiltinCommand>) {
+    fn execute(&self, args: &[String], builtins: &HashMap<&str, BuiltinCommand>) {
         match self {
             BuiltinCommand::Pwd => match env::current_dir() {
                 Ok(dir) => println!("{}", dir.display()),
@@ -27,7 +27,7 @@ impl BuiltinCommand {
             }
             BuiltinCommand::Type => {
                 if let Some(command) = args.get(0) {
-                    if builtins.contains_key(*command) {
+                    if builtins.contains_key(command.as_str()) {
                         println!("{} is a shell builtin", command);
                     } else if let Some(path) = find_command_path(command) {
                         println!("{} is {}", command, path.to_string_lossy());
@@ -45,7 +45,7 @@ impl BuiltinCommand {
     }
 }
 
-fn cd(args: &[&str]) {
+fn cd(args: &[String]) {
     let target_dir = if let Some(path) = args.get(0) {
         if path == &"~" {
             match env::var("HOME") {
@@ -94,6 +94,44 @@ fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
     None
 }
 
+fn parse_input(input: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current_part = String::new();
+    let mut inside_quotes = false;
+
+    let mut chars = input.chars().peekable();
+    
+    while let Some(c) = chars.next() {
+        match c {
+            '\'' => {
+                if inside_quotes {
+                    // If next character is also a quote, stay in the same argument (concatenation)
+                    if chars.peek() == Some(&'\'') {
+                        continue;
+                    }
+                    inside_quotes = false;
+                } else {
+                    inside_quotes = true;
+                }
+            }
+            ' ' if !inside_quotes => {
+                if !current_part.is_empty() {
+                    parts.push(current_part.clone());
+                    current_part.clear();
+                }
+            }
+            _ => current_part.push(c),
+        }
+    }
+
+    if !current_part.is_empty() {
+        parts.push(current_part);
+    }
+
+    parts
+}
+
+
 struct Shell {
     builtins: HashMap<&'static str, BuiltinCommand>,
 }
@@ -128,33 +166,12 @@ impl Shell {
             if trimmed_input.is_empty() {
                 continue;
             }
-
-            let mut parts: Vec<&str> = Vec::new();
-
-            if let (Some(first_index), Some(second_index)) = (trimmed_input.find("'"), trimmed_input.rfind("'")) {
-                if first_index != second_index {
-                    let first_part = trimmed_input[..first_index].trim();
-                    let preserve = &trimmed_input[first_index + 1..second_index]; // Remove surrounding quotes
-                    let rest = trimmed_input[second_index + 1..].trim();
-
-                    if !first_part.is_empty() {
-                        parts.push(first_part);
-                    }
-                    parts.push(preserve);
-                    if !rest.is_empty() {
-                        parts.push(rest);
-                    }
-                } else {
-                    eprintln!("Error: Mismatched or incomplete quotes");
-                }
-            } else {
-                parts = trimmed_input.split_whitespace().collect();
-            }
-
-            let command = parts[0];
+            
+            let parts = parse_input(trimmed_input);
+            let command = &parts[0];
             let args = &parts[1..];
 
-            if let Some(builtin) = self.builtins.get(command) {
+            if let Some(builtin) = self.builtins.get(command.as_str()) {
                 builtin.execute(args, &self.builtins);
             } else {
                 let output = Command::new(command).args(args).output();
