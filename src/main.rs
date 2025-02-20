@@ -138,7 +138,13 @@ fn parse_input(input: &str) -> Vec<String> {
                     parts.push(current_part.clone());
                     current_part.clear();
                 }
+            },
+            '\\' if !inside_single_quotes && !inside_double_quotes => {
+                if let Some(next_char) = chars.next() {
+                    current_part.push(next_char);
+                }
             }
+
             _ => current_part.push(c),
         }
     }
