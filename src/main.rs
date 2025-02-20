@@ -97,24 +97,43 @@ fn find_command_path(cmd: &str) -> Option<std::path::PathBuf> {
 fn parse_input(input: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut current_part = String::new();
-    let mut inside_quotes = false;
-
+    let mut inside_single_quotes = false;
+    let mut inside_double_quotes = false;
     let mut chars = input.chars().peekable();
-    
+
     while let Some(c) = chars.next() {
         match c {
-            '\'' => {
-                if inside_quotes {
-                    // If next character is also a quote, stay in the same argument (concatenation)
-                    if chars.peek() == Some(&'\'') {
-                        continue;
+            '\'' if !inside_double_quotes => {
+                // Toggle single quote state (preserve everything inside single quotes)
+                inside_single_quotes = !inside_single_quotes;
+            }
+            '"' if !inside_single_quotes => {
+                // Toggle double quote state
+                inside_double_quotes = !inside_double_quotes;
+            }
+            '\\' if inside_double_quotes => {
+                // Handle escape sequences inside double quotes
+                match chars.peek() {
+                    Some(&'"') => {
+                        chars.next(); // Consume the escaped quote
+                        current_part.push('"');
                     }
-                    inside_quotes = false;
-                } else {
-                    inside_quotes = true;
+                    Some(&'\\') => {
+                        chars.next(); // Consume the escaped backslash
+                        current_part.push('\\');
+                    }
+                    Some(&'$') => {
+                        chars.next(); // Consume the escaped dollar sign
+                        current_part.push('$');
+                    }
+                    Some(&'\n') => {
+                        chars.next(); // Ignore escaped newlines
+                    }
+                    _ => current_part.push('\\'), // Keep other backslashes
                 }
             }
-            ' ' if !inside_quotes => {
+            ' ' if !inside_single_quotes && !inside_double_quotes => {
+                // If we encounter a space outside of quotes, push the current word
                 if !current_part.is_empty() {
                     parts.push(current_part.clone());
                     current_part.clear();
@@ -130,6 +149,7 @@ fn parse_input(input: &str) -> Vec<String> {
 
     parts
 }
+
 
 
 struct Shell {
