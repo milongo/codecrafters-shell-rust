@@ -1,4 +1,3 @@
-use std::fmt::format;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -11,7 +10,8 @@ fn handle_command(input: &str) {
         Some("exit") => std::process::exit(0),
         Some("echo") => println!("{}", args.collect::<Vec<&str>>().join(" ")),
         Some("type") => handle_type(args.next()),
-        _ => println!("{}: command not found", input),
+        Some(cmd) => println!("{}: command not found", cmd),
+        None => {}
     }
 }
 
@@ -23,7 +23,7 @@ fn search_path(command: &str) -> String {
         let file = format!("{}/{}", path, command);
 
         match std::fs::exists(&file) {
-            Ok(true) => return format!("{} is {}", command, path),
+            Ok(true) => return format!("{} is {}", command, file),
             Ok(false) => continue,
             Err(_) => continue,
         }
