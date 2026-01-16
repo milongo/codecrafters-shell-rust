@@ -1,3 +1,4 @@
+use std::fmt::format;
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -14,12 +15,28 @@ fn handle_command(input: &str) {
     }
 }
 
+fn search_path(command: &str) -> String {
+    let path_env_var= std::env::var("PATH").unwrap();
+    let paths = path_env_var.split(":").collect::<Vec<&str>>();
+
+    for path in paths {
+        let file = format!("{}/{}", path, command);
+
+        match std::fs::exists(&file) {
+            Ok(true) => return format!("{} is {}", command, path),
+            Ok(false) => continue,
+            Err(_) => continue,
+        }
+    }
+    format!("{}: not found", command)
+}
+
 fn handle_type(command: Option<&str>) {
     match command {
         Some("echo") => println!("echo is a shell builtin"),
         Some("type") => println!("type is a shell builtin"),
         Some("exit") => println!("exit is a shell builtin"),
-        Some(cmd) => println!("{}: not found", cmd),
+        Some(cmd) => println!("{}", search_path(cmd)),
         _ => {}
     }
 }
