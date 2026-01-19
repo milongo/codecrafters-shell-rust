@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::process::Command;
 
 fn handle_command(input: &str) {
     let mut input_parts = input.split_ascii_whitespace();
@@ -10,12 +11,20 @@ fn handle_command(input: &str) {
         Some("exit") => std::process::exit(0),
         Some("echo") => println!("{}", args.collect::<Vec<&str>>().join(" ")),
         Some("type") => handle_type(args.next()),
-        Some(cmd) => println!("{}: command not found", cmd),
+        Some(cmd) => {
+            let result = search_path(cmd);
+            if result.0 {
+                Command::new(result.1).args(args).status().expect("Failed to execute process");
+            }
+            else {
+                println!("{}", result.1)
+            }
+        }
         None => {}
     }
 }
 
-fn search_path(command: &str) -> String {
+fn search_path(command: &str) -> (bool, String) {
     let path_env_var= std::env::var("PATH").unwrap();
     let paths = path_env_var.split(":").collect::<Vec<&str>>();
 
@@ -23,12 +32,12 @@ fn search_path(command: &str) -> String {
         let file = format!("{}/{}", path, command);
 
         match std::fs::exists(&file) {
-            Ok(true) => return format!("{} is {}", command, file),
+            Ok(true) => return (true, file),
             Ok(false) => continue,
             Err(_) => continue,
         }
     }
-    format!("{}: not found", command)
+    (false, format!("{}: not found", command))
 }
 
 fn handle_type(command: Option<&str>) {
@@ -36,7 +45,15 @@ fn handle_type(command: Option<&str>) {
         Some("echo") => println!("echo is a shell builtin"),
         Some("type") => println!("type is a shell builtin"),
         Some("exit") => println!("exit is a shell builtin"),
-        Some(cmd) => println!("{}", search_path(cmd)),
+        Some(cmd) => {
+            let result = search_path(cmd);
+            if result.0 {
+                println!("{} is {}", cmd, result.1)
+            }
+            else {
+                println!("{}", result.1)
+            }
+        }
         _ => {}
     }
 }
