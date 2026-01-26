@@ -1,6 +1,8 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::process::Command;
+use std::path::Path;
+use std::os::unix::fs::PermissionsExt;
 
 fn handle_command(input: &str) {
     let mut input_parts = input.split_ascii_whitespace();
@@ -26,15 +28,22 @@ fn handle_command(input: &str) {
 
 fn search_path(command: &str) -> (bool, String) {
     let path_env_var= std::env::var("PATH").unwrap();
-    let paths = path_env_var.split(":").collect::<Vec<&str>>();
+    let paths = path_env_var.split(":");
 
     for path in paths {
-        let file = format!("{}/{}", path, command);
+        let file = Path::new(path).join(command);
+        
+        if file.exists() {
+            let metadata = match file.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
 
-        match std::fs::exists(&file) {
-            Ok(true) => return (true, file),
-            Ok(false) => continue,
-            Err(_) => continue,
+            let mode = metadata.permissions().mode();
+
+            if mode & 0o111 != 0 {
+                return (true, file.display().to_string());
+            }
         }
     }
     (false, format!("{}: not found", command))
