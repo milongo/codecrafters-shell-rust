@@ -26,7 +26,7 @@ fn handle_command(input: &str) {
 
             match path {
                 Some(path) => {
-                    let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd);
+                    let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd); // cringeeeee
                     Command::new(&path)
                         .arg0(arg0)
                         .args(args)
