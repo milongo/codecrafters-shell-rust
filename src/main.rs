@@ -1,8 +1,10 @@
+use std::env::current_dir;
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process::Command;
-use std::path::Path;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
+use std::path::Path;
+use std::process::Command;
 
 fn handle_command(input: &str) {
     let mut input_parts = input.split_ascii_whitespace();
@@ -13,13 +15,27 @@ fn handle_command(input: &str) {
         Some("exit") => std::process::exit(0),
         Some("echo") => println!("{}", args.collect::<Vec<&str>>().join(" ")),
         Some("type") => handle_type(args.next()),
+        Some("pwd") => {
+            println!(
+                "{}",
+                current_dir().expect("Something bad happened.").display()
+            )
+        }
         Some(cmd) => {
-            let result = search_path(cmd);
-            if result.0 {
-                Command::new(result.1).args(args).status().expect("Failed to execute process");
-            }
-            else {
-                println!("{}", result.1)
+            let (found, path) = search_path(cmd);
+            if found {
+                let arg0 = Path::new(&path)
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or(cmd);
+
+                Command::new(&path)
+                    .arg0(arg0)
+                    .args(args) 
+                    .status()
+                    .expect("Failed to execute process");
+            } else {
+                println!("{}", path);
             }
         }
         None => {}
@@ -27,12 +43,12 @@ fn handle_command(input: &str) {
 }
 
 fn search_path(command: &str) -> (bool, String) {
-    let path_env_var= std::env::var("PATH").unwrap();
+    let path_env_var = std::env::var("PATH").unwrap();
     let paths = path_env_var.split(":");
 
     for path in paths {
         let file = Path::new(path).join(command);
-        
+
         if file.exists() {
             let metadata = match file.metadata() {
                 Ok(m) => m,
@@ -54,12 +70,12 @@ fn handle_type(command: Option<&str>) {
         Some("echo") => println!("echo is a shell builtin"),
         Some("type") => println!("type is a shell builtin"),
         Some("exit") => println!("exit is a shell builtin"),
+        Some("pwd") => println!("pwd is a shell builtin"),
         Some(cmd) => {
             let result = search_path(cmd);
             if result.0 {
                 println!("{} is {}", cmd, result.1)
-            }
-            else {
+            } else {
                 println!("{}", result.1)
             }
         }
