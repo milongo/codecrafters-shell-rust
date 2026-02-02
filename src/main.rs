@@ -3,7 +3,7 @@ use std::env::current_dir;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn handle_command(input: &str) {
@@ -22,27 +22,25 @@ fn handle_command(input: &str) {
             )
         }
         Some(cmd) => {
-            let (found, path) = search_path(cmd);
-            if found {
-                let arg0 = Path::new(&path)
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or(cmd);
+            let path = search_path(cmd);
 
-                Command::new(&path)
-                    .arg0(arg0)
-                    .args(args) 
-                    .status()
-                    .expect("Failed to execute process");
-            } else {
-                println!("{}", path);
+            match path {
+                Some(path) => {
+                    let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd);
+                    Command::new(&path)
+                        .arg0(arg0)
+                        .args(args)
+                        .status()
+                        .expect("Failed to execute process");
+                }
+                _ => println!("{}: not found", cmd),
             }
         }
         None => {}
     }
 }
 
-fn search_path(command: &str) -> (bool, String) {
+fn search_path(command: &str) -> Option<PathBuf> {
     let path_env_var = std::env::var("PATH").unwrap();
     let paths = path_env_var.split(":");
 
@@ -58,11 +56,11 @@ fn search_path(command: &str) -> (bool, String) {
             let mode = metadata.permissions().mode();
 
             if mode & 0o111 != 0 {
-                return (true, file.display().to_string());
+                return Some(file);
             }
         }
     }
-    (false, format!("{}: not found", command))
+    None
 }
 
 fn handle_type(command: Option<&str>) {
@@ -73,10 +71,10 @@ fn handle_type(command: Option<&str>) {
         Some("pwd") => println!("pwd is a shell builtin"),
         Some(cmd) => {
             let result = search_path(cmd);
-            if result.0 {
-                println!("{} is {}", cmd, result.1)
-            } else {
-                println!("{}", result.1)
+
+            match result {
+                Some(result) => println!("{} is {}", cmd, result.display()),
+                _ => println!("{}: not found", cmd),
             }
         }
         _ => {}
