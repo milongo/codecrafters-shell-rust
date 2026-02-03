@@ -1,10 +1,11 @@
-use std::env::current_dir;
+use std::env::{current_dir, set_current_dir};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::result;
 
 fn handle_command(input: &str) {
     let mut input_parts = input.split_ascii_whitespace();
@@ -20,6 +21,18 @@ fn handle_command(input: &str) {
                 "{}",
                 current_dir().expect("Something bad happened.").display()
             )
+        }
+        Some("cd") => {
+            let path = args.next();
+            match path {
+                Some(path) => {
+                    if Path::new(path).is_absolute() {
+                        set_current_dir(path)
+                            .unwrap_or(println!("cd: {}: No such file or directory", path))
+                    };
+                }
+                _ => println!("Something bad happened"),
+            }
         }
         Some(cmd) => {
             let path = search_path(cmd);
