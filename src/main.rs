@@ -29,7 +29,13 @@ fn handle_command(input: &str) {
                     if Path::new(path).is_absolute() {
                         set_current_dir(path)
                             .unwrap_or(println!("cd: {}: No such file or directory", path))
-                    };
+                    } else if path.starts_with("./") {
+                        let stripped = Path::new(&path[2..]);
+                        let cd_into = current_dir().unwrap().join(stripped);
+                        set_current_dir(&cd_into).unwrap_or_else(|_e| {
+                            println!("cd {}: No such file or directory", cd_into.display())
+                        });
+                    }
                 }
                 _ => println!("Something bad happened"),
             }
