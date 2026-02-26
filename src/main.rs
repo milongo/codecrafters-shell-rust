@@ -3,7 +3,7 @@ use std::env::{current_dir, set_current_dir};
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
-use std::path::{Path, PathBuf};
+use std::path::{self, Component, Path, PathBuf};
 use std::process::Command;
 use std::result;
 
@@ -23,27 +23,40 @@ fn handle_command(input: &str) {
             )
         }
         Some("cd") => {
-            let path = args.next();
-            match path {
-                Some(path) => {
-                    if Path::new(path).is_absolute() {
-                        set_current_dir(path)
-                            .unwrap_or(println!("cd: {}: No such file or directory", path))
-                    } else if path.starts_with("./") {
-                        let stripped = Path::new(&path[2..]);
-                        let cd_into = current_dir().unwrap().join(stripped);
-                        set_current_dir(&cd_into).unwrap_or_else(|_e| {
-                            println!("cd {}: No such file or directory", cd_into.display())
-                        });
+            let path_str = args.next();
+
+            match path_str {
+                Some(path_str) => {
+                    let path = Path::new(path_str);
+                    if path.is_absolute() {
+                        set_current_dir(path_str).unwrap_or_else(|_e| {
+                            println!("cd: {}: No such file or directory", path_str)
+                        })
+                    } else {
+                        let mut base = current_dir().unwrap();
+                        for component in path.components() {
+                            match component {
+                                Component::ParentDir => {
+                                    base.pop();
+                                }
+                                Component::Normal(part) => {
+                                    base.push(part);
+                                }
+                                _ => {}
+                            }
+                        }
+                        set_current_dir(base).unwrap_or_else(|_e| {
+                            println!("cd: {}: No such file or directory", path_str)
+                        })
                     }
                 }
                 _ => println!("Something bad happened"),
             }
         }
         Some(cmd) => {
-            let path = search_path(cmd);
+            let path_str = search_path(cmd);
 
-            match path {
+            match path_str {
                 Some(path) => {
                     let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd); // cringeeeee
                     Command::new(&path)
