@@ -3,72 +3,80 @@ use std::env::{current_dir, set_current_dir};
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
-use std::path::{self, Component, Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
-use std::result;
 
-fn handle_command(input: &str) {
+fn get_command_and_args(input: &str) -> (Option<&str>, Vec<&str>) {
     let mut input_parts = input.split_ascii_whitespace();
     let command = input_parts.next();
-    let mut args = input_parts;
+    let args = input_parts.collect::<Vec<&str>>();
+    (command, args)
+}
+
+fn handle_command(input: &str) {
+    let (command, args) = get_command_and_args(input);
 
     match command {
         Some("exit") => std::process::exit(0),
-        Some("echo") => println!("{}", args.collect::<Vec<&str>>().join(" ")),
-        Some("type") => handle_type(args.next()),
+        Some("echo") => {
+            println!("{}", args.join(" "));
+        }
+        Some("type") => handle_type(args.first().copied()),
         Some("pwd") => {
-            println!(
-                "{}",
-                current_dir().expect("Something bad happened.").display()
-            )
+            println!("{}", current_dir().unwrap().display())
         }
         Some("cd") => {
-            let path_str = args.next();
-
-            match path_str {
-                Some(path_str) => {
-                    let path = Path::new(path_str);
-                    if path.is_absolute() {
-                        set_current_dir(path_str).unwrap_or_else(|_e| {
-                            println!("cd: {}: No such file or directory", path_str)
-                        })
-                    } else {
-                        let mut base = current_dir().unwrap();
-                        for component in path.components() {
-                            match component {
-                                Component::ParentDir => {
-                                    base.pop();
-                                }
-                                Component::Normal(part) => {
-                                    base.push(part);
-                                }
-                                _ => {}
-                            }
-                        }
-                        set_current_dir(base).unwrap_or_else(|_e| {
-                            println!("cd: {}: No such file or directory", path_str)
-                        })
-                    }
-                }
-                _ => println!("Something bad happened"),
-            }
+            let path = PathBuf::from(args[0]);
+            cd(Some(path));
         }
         Some(cmd) => {
-            let path_str = search_path(cmd);
-
-            match path_str {
+            let path = search_path(cmd);
+            match path {
                 Some(path) => {
-                    let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd); // cringeeeee
-                    Command::new(&path)
-                        .arg0(arg0)
-                        .args(args)
-                        .status()
-                        .expect("Failed to execute process");
+                    execute_command(cmd, path, args);
                 }
                 _ => println!("{}: not found", cmd),
             }
         }
         None => {}
+    }
+}
+
+fn execute_command(cmd: &str, path: PathBuf, args: Vec<&str>) {
+    let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd); // cringeeeee
+    Command::new(&path)
+        .arg0(arg0)
+        .args(args)
+        .status()
+        .expect("Failed to execute process");
+}
+
+fn cd(path: Option<PathBuf>) {
+    match path {
+        Some(path) => {
+            if path.is_absolute() {
+                set_current_dir(&path).unwrap_or_else(|_e| {
+                    println!("cd: {}: No such file or directory", path.display())
+                })
+            } else {
+                let mut base = current_dir().unwrap();
+                for component in path.components() {
+                    match component {
+                        Component::ParentDir => {
+                            base.pop();
+                        }
+                        Component::Normal(part) => {
+                            base.push(part);
+                        }
+                        _ => {}
+                    }
+                }
+                set_current_dir(base).unwrap_or_else(|_e| {
+                    println!("cd: {}: No such file or directory", path.display())
+                })
+            }
+        }
+        _ => println!("Something bad happened"),
     }
 }
 
