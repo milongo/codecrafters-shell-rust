@@ -26,8 +26,14 @@ fn handle_command(input: &str) {
             println!("{}", current_dir().unwrap().display())
         }
         Some("cd") => {
-            let path = PathBuf::from(args[0]);
-            cd(Some(path));
+            let path_str = args.first().copied();
+            match path_str {
+                Some(path) => {
+                    let path = PathBuf::from(path);
+                    cd(path);
+                }
+                _ => {}
+            }
         }
         Some(cmd) => {
             let path = search_path(cmd);
@@ -51,32 +57,25 @@ fn execute_command(cmd: &str, path: PathBuf, args: Vec<&str>) {
         .expect("Failed to execute process");
 }
 
-fn cd(path: Option<PathBuf>) {
-    match path {
-        Some(path) => {
-            if path.is_absolute() {
-                set_current_dir(&path).unwrap_or_else(|_e| {
-                    println!("cd: {}: No such file or directory", path.display())
-                })
-            } else {
-                let mut base = current_dir().unwrap();
-                for component in path.components() {
-                    match component {
-                        Component::ParentDir => {
-                            base.pop();
-                        }
-                        Component::Normal(part) => {
-                            base.push(part);
-                        }
-                        _ => {}
-                    }
+fn cd(path: PathBuf) {
+    if path.is_absolute() {
+        set_current_dir(&path)
+            .unwrap_or_else(|_e| println!("cd: {}: No such file or directory", path.display()))
+    } else {
+        let mut base = current_dir().unwrap();
+        for component in path.components() {
+            match component {
+                Component::ParentDir => {
+                    base.pop();
                 }
-                set_current_dir(base).unwrap_or_else(|_e| {
-                    println!("cd: {}: No such file or directory", path.display())
-                })
+                Component::Normal(part) => {
+                    base.push(part);
+                }
+                _ => {}
             }
         }
-        _ => println!("Something bad happened"),
+        set_current_dir(base)
+            .unwrap_or_else(|_e| println!("cd: {}: No such file or directory", path.display()))
     }
 }
 
