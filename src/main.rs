@@ -1,9 +1,9 @@
-use std::env::{current_dir, set_current_dir};
+use std::env::{current_dir, home_dir, set_current_dir};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn get_command_and_args(input: &str) -> (Option<&str>, Vec<&str>) {
@@ -13,9 +13,7 @@ fn get_command_and_args(input: &str) -> (Option<&str>, Vec<&str>) {
     (command, args)
 }
 
-fn handle_command(input: &str) {
-    let (command, args) = get_command_and_args(input);
-
+fn handle_command(command: Option<&str>, args: &[&str]) {
     match command {
         Some("exit") => std::process::exit(0),
         Some("echo") => {
@@ -27,13 +25,7 @@ fn handle_command(input: &str) {
         }
         Some("cd") => {
             let path_str = args.first().copied();
-            match path_str {
-                Some(path) => {
-                    let path = PathBuf::from(path);
-                    cd(path);
-                }
-                _ => {}
-            }
+            cd(path_str);
         }
         Some(cmd) => {
             let path = search_path(cmd);
@@ -41,14 +33,14 @@ fn handle_command(input: &str) {
                 Some(path) => {
                     execute_command(cmd, path, args);
                 }
-                _ => println!("{}: not found", cmd),
+                _ => eprintln!("{}: not found", cmd),
             }
         }
         None => {}
     }
 }
 
-fn execute_command(cmd: &str, path: PathBuf, args: Vec<&str>) {
+fn execute_command(cmd: &str, path: &Path, args: &[&str]) {
     let arg0 = path.file_name().and_then(|s| s.to_str()).unwrap_or(cmd); // cringeeeee
     Command::new(&path)
         .arg0(arg0)
@@ -57,30 +49,28 @@ fn execute_command(cmd: &str, path: PathBuf, args: Vec<&str>) {
         .expect("Failed to execute process");
 }
 
-fn cd(path: PathBuf) {
-    if path.is_absolute() {
-        set_current_dir(&path)
-            .unwrap_or_else(|_e| println!("cd: {}: No such file or directory", path.display()))
-    } else {
-        let mut base = current_dir().unwrap();
-        for component in path.components() {
-            match component {
-                Component::ParentDir => {
-                    base.pop();
-                }
-                Component::Normal(part) => {
-                    base.push(part);
-                }
-                _ => {}
+fn cd(path: Option<&str>) {
+    let raw = match path {
+        Some(s) => PathBuf::from(s),
+        None => match home_dir() {
+            Some(home) => home,
+            None => {
+                eprintln!("cd: HOME not set");
+                return;
             }
-        }
-        set_current_dir(base)
-            .unwrap_or_else(|_e| println!("cd: {}: No such file or directory", path.display()))
+        },
+    };
+
+    if let Err(_e) = set_current_dir(&raw) {
+        eprintln!("cd: {}: No such file or directory", raw.display());
     }
 }
 
 fn search_path(command: &str) -> Option<PathBuf> {
-    let path_env_var = std::env::var("PATH").unwrap();
+    let path_env_var = match std::env::var("PATH") {
+        Ok(p) => p,
+        Err(_) => return None,
+    };
     let paths = path_env_var.split(":");
 
     for path in paths {
@@ -133,7 +123,7 @@ fn main() {
         stdin.read_line(&mut input).unwrap();
 
         let input = input.trim();
-
-        handle_command(input);
+        let (command, args) = get_command_and_args(input);
+        handle_command(command, args);
     }
 }
