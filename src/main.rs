@@ -31,7 +31,7 @@ fn handle_command(command: Option<&str>, args: &[&str]) {
             let path = search_path(cmd);
             match path {
                 Some(path) => {
-                    execute_command(cmd, path, args);
+                    execute_command(cmd, &path, args);
                 }
                 _ => eprintln!("{}: not found", cmd),
             }
@@ -51,14 +51,14 @@ fn execute_command(cmd: &str, path: &Path, args: &[&str]) {
 
 fn cd(path: Option<&str>) {
     let raw = match path {
-        Some(s) => PathBuf::from(s),
-        None => match home_dir() {
+        None | Some("~") => match home_dir() {
             Some(home) => home,
             None => {
                 eprintln!("cd: HOME not set");
                 return;
             }
         },
+        Some(s) => PathBuf::from(s),
     };
 
     if let Err(_e) = set_current_dir(&raw) {
@@ -124,6 +124,6 @@ fn main() {
 
         let input = input.trim();
         let (command, args) = get_command_and_args(input);
-        handle_command(command, args);
+        handle_command(command, &args);
     }
 }
