@@ -6,10 +6,36 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn get_command_and_args(input: &str) -> (Option<&str>, Vec<&str>) {
-    let mut input_parts = input.split_ascii_whitespace();
-    let command = input_parts.next();
-    let args = input_parts.collect::<Vec<&str>>();
+fn get_command_and_args(input: &str) -> (Option<String>, Vec<String>) {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut buffer = String::new();
+    let mut pushing = false;
+
+    for char in input.chars() {
+        if char == '\'' {
+            pushing = !pushing;
+            continue;
+        }
+
+        if pushing {
+            buffer.push(char);
+        } else if char == ' ' {
+            if !buffer.is_empty() {
+                tokens.push(buffer.clone());
+                buffer.clear();
+            }
+        } else {
+            buffer.push(char);
+        }
+    }
+
+    if !buffer.is_empty() {
+        tokens.push(buffer);
+    }
+
+    let command = tokens.get(0).cloned();
+    let args = tokens.into_iter().skip(1).collect();
+
     (command, args)
 }
 
@@ -123,7 +149,7 @@ fn main() {
         stdin.read_line(&mut input).unwrap();
 
         let input = input.trim();
-        let (command, args) = get_command_and_args(input);
-        handle_command(command, &args);
+        get_command_and_args(input);
+        // handle_command(command, &args);
     }
 }
