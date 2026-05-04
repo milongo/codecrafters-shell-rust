@@ -149,7 +149,10 @@ fn main() {
         stdin.read_line(&mut input).unwrap();
 
         let input = input.trim();
-        get_command_and_args(input);
-        // handle_command(command, &args);
+        let (command, args) = get_command_and_args(input);
+        let command_ref = command.as_deref(); // Option<&str>
+        let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+
+        handle_command(command_ref, &args_ref);
     }
 }
