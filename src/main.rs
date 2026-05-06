@@ -1,3 +1,4 @@
+use std::char;
 use std::env::{current_dir, home_dir, set_current_dir};
 #[allow(unused_imports)]
 use std::io::{self, Write};
@@ -10,12 +11,20 @@ fn get_command_and_args(input: &str) -> (Option<String>, Vec<String>) {
     let mut tokens: Vec<String> = Vec::new();
     let mut buffer = String::new();
     let mut pushing = false;
-
+    let mut push_indicator: Vec<char> = Vec::new();
     for char in input.chars() {
-        if char == '\'' {
-            pushing = !pushing;
-            continue;
+        // chars need to be single quoted. and to get ' it has to be escaped via \.
+        if pushing {
+            if push_indicator[push_indicator.len() - 1] == char {
+                push_indicator.pop();
+                pushing = !pushing;
+            }
         }
+        if (char == '\'' || char == '\"') && !pushing {
+            pushing = !pushing;
+            push_indicator.push(char);
+            continue;
+        };
 
         if pushing {
             buffer.push(char);
