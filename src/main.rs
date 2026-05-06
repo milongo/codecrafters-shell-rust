@@ -10,28 +10,28 @@ use std::process::Command;
 fn get_command_and_args(input: &str) -> (Option<String>, Vec<String>) {
     let mut tokens: Vec<String> = Vec::new();
     let mut buffer = String::new();
-    let mut pushing = false;
-    let mut push_indicator: Vec<char> = Vec::new();
+    let mut quote: Option<char> = None;
     for char in input.chars() {
         // chars need to be single quoted. and to get ' it has to be escaped via \.
-        if pushing {
-            if push_indicator[push_indicator.len() - 1] == char {
-                push_indicator.pop();
-                pushing = !pushing;
+        if char == '\'' || char == '"' {
+            if let Some(q) = quote {
+                if char == q {
+                    quote = None;
+                } else {
+                    buffer.push(char);
+                }
+            } else {
+                quote = Some(char);
             }
-        }
-        if (char == '\'' || char == '\"') && !pushing {
-            pushing = !pushing;
-            push_indicator.push(char);
             continue;
-        };
-
-        if pushing {
+        }
+        if let Some(_) = quote {
             buffer.push(char);
-        } else if char == ' ' {
+            continue;
+        }
+        if char == ' ' {
             if !buffer.is_empty() {
-                tokens.push(buffer.clone());
-                buffer.clear();
+                tokens.push(std::mem::take(&mut buffer));
             }
         } else {
             buffer.push(char);
